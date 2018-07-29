@@ -24,11 +24,17 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
+import java.util.ArrayList;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback  {
 
@@ -38,6 +44,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private FirebaseUser user;
     private Location mLocation;
     private DatabaseReference myRef;
+    private ArrayList<UserInfo> userInfos;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,6 +55,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         myRef= FirebaseDatabase.getInstance().getReference("ubicaciones");
 
+
         if (ActivityCompat.checkSelfPermission(
                 this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,}, 1000);
@@ -56,12 +64,48 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
 
+
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-
+        inicializarEventListenerDataBase();
 
     }
+
+    private void inicializarEventListenerDataBase() {
+
+        myRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                int i=0;
+                mMap.clear();
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    drawMarker(snapshot.getValue(UserInfo.class));
+                    i++;
+                }
+                printLog("Firebase dataChange cant userInfo recibidas: "+i);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                // Failed to read value
+                Log.w(TAG, "Failed to read value.", error.toException());
+            }
+        });
+    }
+
+    private void drawMarker(UserInfo userInfo) {
+        LatLng latLng = new LatLng(userInfo.latitud, userInfo.longitud);
+
+        mMap.addMarker(new MarkerOptions().position(latLng).title(userInfo.name));
+
+        if (userInfo.uid.equals(user.getUid()))
+        {
+            moverCamaraToLocation(userInfo.latitud,userInfo.longitud);
+        }
+    }
+
+
     private void ubicacion() {
         LocationManager mlocManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Localizacion Local = new Localizacion();
@@ -89,7 +133,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-
     public class Localizacion implements LocationListener {
         MapsActivity mainActivity;
         public void setMainActivity(MapsActivity mainActivity) {
@@ -98,14 +141,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         public void onLocationChanged(Location loc) {
             if (loc != null) {
-
                 mLocation=loc;
-                // Write a message to the database
-                Ubicacion ubicacion=new Ubicacion(user.getUid(),mLocation.getLatitude()+"",mLocation.getLongitude()+"",user.getDisplayName());
-                String id=myRef.push().getKey();
-                myRef.child(id).setValue(ubicacion);
-                
-                moverCamaraToLocation();
+                printLog("onLocationChanged");
+                UserInfo info=new UserInfo(user.getUid(),user.getDisplayName(),
+                        user.getPhotoUrl()+"",loc.getLatitude(),loc.getLongitude(),"");
+                myRef.child(user.getUid()).setValue(info);
+                moverCamaraToLocation(loc.getLatitude(),loc.getLongitude());
             }
         }
 
@@ -141,12 +182,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private void moverCamaraToLocation() {
-        printLog("Moviendo Camara...");
-        mMap.clear();
-        LatLng latLng = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
-        mMap.addMarker(new MarkerOptions().position(latLng).title("Marker"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+    private void addMarcador(double lat, double log,String title,String color)
+    {
+
+
+    }
+
+    private void moverCamaraToLocation(double lat, double log) {
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(lat,log)));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(17));
     }
 
@@ -159,6 +202,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         String email = user.getEmail();
         Uri photoUrl = user.getPhotoUrl();
         String uid = user.getUid();
+
+
+
         printLog("\t"+name +" "+ email+" "+photoUrl+" "+uid);
     }
 
@@ -180,4 +226,5 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         startActivity(new Intent(this,LoginActivity.class));
         finish();
     }
+
 }

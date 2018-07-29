@@ -1,6 +1,7 @@
 package com.uagrm.informatica.johana.radar;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -63,7 +64,7 @@ public class RegisterActivity extends AppCompatActivity {
 
                             UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
                                     .setDisplayName(name)
-                                   // .setPhotoUri(Uri.parse("https://example.com/jane-q-user/profile.jpg"))
+                                    .setPhotoUri(Uri.parse("https://example.com/jane-q-user/profile.jpg"))
                                     .build();
 
                             user.updateProfile(profileUpdates)

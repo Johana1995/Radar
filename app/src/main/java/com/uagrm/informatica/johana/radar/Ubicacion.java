@@ -1,15 +1,28 @@
 package com.uagrm.informatica.johana.radar;
 
+import com.google.firebase.database.IgnoreExtraProperties;
+
+@IgnoreExtraProperties
 class Ubicacion {
     String idUser;
     String latitud;
     String longitud;
-    String orden;
+    String displayname;
 
-    public Ubicacion(String idUser, String latitud, String longitud, String orden) {
+    public Ubicacion(String idUser, String latitud, String longitud,String name) {
         this.idUser = idUser;
         this.latitud = latitud;
         this.longitud = longitud;
-        this.orden = orden;
+        this.displayname=name;
     }
+
+    public Ubicacion() {
+    }
+
+    @Override
+    public String toString() {
+        return latitud+" "+longitud+" "+displayname;
+    }
+
+
 }
